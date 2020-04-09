@@ -19,7 +19,7 @@ namespace MediaOrganiser
         public async Task ProcessAsync()
         {
             // do the thing
-            await Task.Delay(200); // temp, replace this with processing
+            await Task.Delay(1); // temp, replace this with processing
         }
 
         public bool CanProcess()

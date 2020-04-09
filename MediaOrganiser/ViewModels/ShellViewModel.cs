@@ -92,6 +92,7 @@ namespace MediaOrganiser.ViewModels
                     i++;
                     Int32 workerValue = Convert.ToInt32((double)(i / iMax) * 100);
                     CurrentProgress = workerValue;
+                    UpdateSummary(i);
 
                     var medium = new Medium(file);
 
@@ -101,14 +102,6 @@ namespace MediaOrganiser.ViewModels
                         _media.Add(medium);
                     }
                 }
-
-                var numberOfFiles = filtered.Count();
-                if (numberOfFiles == 0)
-                    Summary = String.Format("No files found");
-                else if (numberOfFiles == 1)
-                    Summary = String.Format("{0} file found", numberOfFiles);
-                else
-                    Summary = String.Format("{0} files found", numberOfFiles);
             }
 
             catch (Exception exception)
@@ -118,6 +111,16 @@ namespace MediaOrganiser.ViewModels
                 //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw exception;
             }
+        }
+
+        private void UpdateSummary(Int32 numberOfFiles)
+        {
+            if (numberOfFiles == 0)
+                Summary = String.Format("No files found");
+            else if (numberOfFiles == 1)
+                Summary = String.Format("{0} file found", numberOfFiles);
+            else
+                Summary = String.Format("{0} files found", numberOfFiles);
         }
 
         public async void LoadFiles()
@@ -154,7 +157,7 @@ namespace MediaOrganiser.ViewModels
                 //Do stuff
                 //}
             }
-            catch (Exception exception)
+            catch (Exception e)
             {
                 // what do we want to do here?
             }

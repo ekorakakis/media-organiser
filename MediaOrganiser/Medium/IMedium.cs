@@ -8,7 +8,7 @@ namespace MediaOrganiser
 {
     public interface IMedium
     {
-        void Process();
+        Task ProcessAsync();
 
         bool CanProcess();
     }

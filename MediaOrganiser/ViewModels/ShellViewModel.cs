@@ -75,11 +75,11 @@ namespace MediaOrganiser.ViewModels
             }
         }
 
-        private void DoLoading()
+        private async Task DoLoadingAsync()
         {
             try
             {
-                //_media.Clear();
+                _media.Clear();
 
                 DirectoryInfo directory = new DirectoryInfo(SelectedPath);
                 FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
@@ -93,13 +93,13 @@ namespace MediaOrganiser.ViewModels
                     Int32 workerValue = Convert.ToInt32((double)(i / iMax) * 100);
                     CurrentProgress = workerValue;
 
-                    // Thread.Sleep(1);
-
                     var medium = new Medium(file);
-                    if (medium.CanProcess())
-                        medium.Process();
 
-                    //_media.Add(medium);
+                    if (medium.CanProcess())
+                    {
+                        await medium.ProcessAsync();
+                        _media.Add(medium);
+                    }
                 }
 
                 var numberOfFiles = filtered.Count();
@@ -122,7 +122,7 @@ namespace MediaOrganiser.ViewModels
 
         public async void LoadFiles()
         {
-            await Task.Run(() => DoLoading());
+            await DoLoadingAsync();
         }
 
         public void Browse()

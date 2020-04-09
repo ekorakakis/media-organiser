@@ -9,24 +9,25 @@ namespace MediaOrganiser
 {
     public class Medium : IMedium
     {
-        private FileInfo fileInfo;
+        private FileInfo _fileInfo;
 
         public Medium(FileInfo file)
         {
-            fileInfo = file;
+            _fileInfo = file;
         }
 
-        public void Process()
+        public async Task ProcessAsync()
         {
-
+            // do the thing
+            await Task.Delay(200); // temp, replace this with processing
         }
 
         public bool CanProcess()
         {
-            return false;
+            return _fileInfo != null;
         }
 
-        public string Name { get { return fileInfo.Name; } }
+        public string Name { get { return _fileInfo.Name; } }
 
         public override string ToString()
         {

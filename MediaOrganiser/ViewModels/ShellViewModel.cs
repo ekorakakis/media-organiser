@@ -1,5 +1,6 @@
 ﻿using Caliburn.Micro;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Configuration;
@@ -13,18 +14,23 @@ namespace MediaOrganiser.ViewModels
 {
     public class ShellViewModel : PropertyChangedBase
     {
-        private string _summary;
-        private string _selectedPath;
+        private String _summary;
+        private String _selectedPath;
         private Int32 _currentProgress;
-
-        private ObservableCollection<Medium> _media = new ObservableCollection<Medium>();
+        private NameValueCollection _regexPatterns;
+        private ObservableCollection<Medium> _media;
 
         public ShellViewModel()
         {
             try
             {
+                _media = new ObservableCollection<Medium>();
+                
                 var section = ConfigurationManager.GetSection("environment") as NameValueCollection;
                 SelectedPath = section["path"];
+
+                _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
+                // _regexPatterns = section["regex[atterms"]
             }
             catch (Exception e)
             {
@@ -45,7 +51,7 @@ namespace MediaOrganiser.ViewModels
             }
         }
 
-        public string SelectedPath
+        public String SelectedPath
         {
             get { return _selectedPath; }
             set
@@ -85,31 +91,32 @@ namespace MediaOrganiser.ViewModels
                 FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
                 var filtered = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
 
-                var i = 0;
+                int progressValue = 0;
+                int filteredIndex = 0;
                 double iMax = filtered.Count();
                 foreach (var file in filtered)
                 {
-                    i++;
-                    Int32 workerValue = Convert.ToInt32((double)(i / iMax) * 100);
+                    progressValue++;
+                    Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
                     CurrentProgress = workerValue;
-                    UpdateSummary(i);
-
-                    var medium = new Medium(file);
-
+                    
+                    var medium = new Medium(file, _regexPatterns);
                     if (medium.CanProcess())
                     {
+                        filteredIndex++;
                         await medium.ProcessAsync();
                         _media.Add(medium);
+                        UpdateSummary(filteredIndex);
                     }
                 }
             }
 
-            catch (Exception exception)
+            catch (Exception e)
             {
                 // ApplicationException() - what do we want to do here?
                 // do not swallow the original exception
                 //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                throw exception;
+                throw e;
             }
         }
 

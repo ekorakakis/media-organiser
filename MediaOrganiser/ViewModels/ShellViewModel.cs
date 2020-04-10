@@ -1,12 +1,10 @@
 ﻿using Caliburn.Micro;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -16,6 +14,7 @@ namespace MediaOrganiser.ViewModels
     {
         private String _summary;
         private String _selectedPath;
+        private String _destination;
         private Int32 _currentProgress;
         private NameValueCollection _regexPatterns;
         private ObservableCollection<Medium> _media;
@@ -27,7 +26,8 @@ namespace MediaOrganiser.ViewModels
                 _media = new ObservableCollection<Medium>();
                 
                 var section = ConfigurationManager.GetSection("environment") as NameValueCollection;
-                SelectedPath = section["path"];
+                SelectedPath = section["source"];
+                Destination = section["destination"];
 
                 _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
                 // _regexPatterns = section["regex[atterms"]
@@ -58,6 +58,16 @@ namespace MediaOrganiser.ViewModels
             {
                 _selectedPath = value;
                 NotifyOfPropertyChange(() => SelectedPath);
+            }
+        }
+
+        public String Destination
+        {
+            get { return _destination; }
+            set
+            {
+                _destination = value;
+                NotifyOfPropertyChange(() => Destination);
             }
         }
 
@@ -100,10 +110,12 @@ namespace MediaOrganiser.ViewModels
                     Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
                     CurrentProgress = workerValue;
                     
-                    var medium = new Medium(file, _regexPatterns);
+                    var medium = new Medium(file, _destination, _regexPatterns);
                     if (medium.CanProcess())
                     {
                         filteredIndex++;
+
+                        // to do - probably don't want to process the files here; this should be for loading only
                         await medium.ProcessAsync();
                         _media.Add(medium);
                         UpdateSummary(filteredIndex);
@@ -135,7 +147,7 @@ namespace MediaOrganiser.ViewModels
             await DoLoadingAsync();
         }
 
-        public void Browse()
+        public void BrowseSource()
         {
             try
             {
@@ -144,25 +156,22 @@ namespace MediaOrganiser.ViewModels
                 folderDialog.ShowDialog();
                 SelectedPath = folderDialog.SelectedPath;
                 Reset();
-                
-                // System.Windows.MessageBox.Show(SelectedPath);
+            }
+            catch (Exception e)
+            {
+                // what do we want to do here?
+            }
+        }
 
-                /* A few things that need to happen here:
-                 1. Have a service registered and available to call (a filedialogservice);
-                 2. Use the service to open the dialog box and record the path;
-                 3. This ViewModel should have a property for the path somewhere. There is a lot of logic now on the ViewModel; is that a problem?
-                 */
-
-                //var fileDialogService = container.Resolve<IFileDialogService>();
-
-                //https://stackoverflow.com/questions/1619505/wpf-openfiledialog-with-the-mvvm-pattern
-
-                //string path = fileDialogService.OpenFileDialog();
-
-                //if (!string.IsNullOrEmpty(path))
-                //{
-                //Do stuff
-                //}
+        public void BrowseDestination()
+        {
+            try
+            {
+                FolderBrowserDialog folderDialog = new FolderBrowserDialog();
+                folderDialog.SelectedPath = Destination;
+                folderDialog.ShowDialog();
+                Destination = folderDialog.SelectedPath;
+                Reset();
             }
             catch (Exception e)
             {

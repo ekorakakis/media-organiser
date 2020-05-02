@@ -3,6 +3,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace MediaOrganiser.ViewModels
         private String _selectedPath;
         private String _destination;
         private Int32 _currentProgress;
+        private DateTime _dateAfter;
         private NameValueCollection _regexPatterns;
         private ObservableCollection<Medium> _media;
 
@@ -28,6 +30,9 @@ namespace MediaOrganiser.ViewModels
                 var section = ConfigurationManager.GetSection("environment") as NameValueCollection;
                 SelectedPath = section["source"];
                 Destination = section["destination"];
+
+                string datePattern = "ddMMyyyy";
+                DateTime.TryParseExact(section["dateAfter"], datePattern, null, DateTimeStyles.None, out _dateAfter);
 
                 _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
                 // _regexPatterns = section["regex[atterms"]
@@ -100,7 +105,7 @@ namespace MediaOrganiser.ViewModels
                 DirectoryInfo directory = new DirectoryInfo(SelectedPath);
                 FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
                 var filtered = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
-
+                
                 int progressValue = 0;
                 int filteredIndex = 0;
                 double iMax = filtered.Count();
@@ -110,13 +115,13 @@ namespace MediaOrganiser.ViewModels
                     Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
                     CurrentProgress = workerValue;
                     
-                    var medium = new Medium(file, _destination, _regexPatterns);
+                    var medium = new Medium(file.FullName, file.Name, file.Extension, _destination, _regexPatterns);
                     if (medium.CanProcess())
                     {
                         filteredIndex++;
 
                         // to do - probably don't want to process the files here; this should be for loading only
-                        await medium.ProcessAsync();
+                        // await medium.ProcessAsync();
                         _media.Add(medium);
                         UpdateSummary(filteredIndex);
                     }

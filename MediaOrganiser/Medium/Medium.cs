@@ -7,13 +7,17 @@ namespace MediaOrganiser
 {
     public class Medium : IMedium
     {
-        private FileInfo _fileInfo;
+        private string _fullPath;
+        private string _name;
+        private string _extension;
         private NameValueCollection _regexPatterns;
         private string _destination;
 
-        public Medium(FileInfo file, string destination, NameValueCollection regexPatterns)
+        public Medium(string fullPath, string name, string extension, string destination, NameValueCollection regexPatterns)
         {
-            _fileInfo = file;
+            _fullPath = fullPath;
+            _name = name;
+            _extension = extension;
             _destination = destination;
             _regexPatterns = regexPatterns;
         }
@@ -24,7 +28,7 @@ namespace MediaOrganiser
             bool returnValue = false;
 
             // only bother to check if the file has been supplied
-            if (_fileInfo != null)
+            if (_fullPath != null)
             {
                 Regex reg;
 
@@ -33,7 +37,7 @@ namespace MediaOrganiser
                 {
                     // create a new regex and check if the file's name matches it
                     reg = new Regex(_regexPatterns[regExpression.ToString()]);
-                    if (reg.IsMatch(_fileInfo.Name))
+                    if (reg.IsMatch(_name))
                     {
                         // if this matches set the return value to true and return. It
                         // means that we can extract the year and month out of the name.
@@ -54,7 +58,7 @@ namespace MediaOrganiser
 
                 // 1. Extract the year and the month. 
                 // To do so, first find the filename without the extension
-                string basePart = _fileInfo.Name.Substring(0, _fileInfo.Name.IndexOf(_fileInfo.Extension));
+                string basePart = _name.Substring(0, _name.IndexOf(_extension));
 
                 // Then extract the year; this normally is the first numerical value that 
                 // appears in the filename. We have to ignore any other characters before that.
@@ -68,12 +72,14 @@ namespace MediaOrganiser
                 Directory.CreateDirectory(fullPath);
 
                 // 3. Move the file to the destination folder
-                var destination = Path.Combine(fullPath, _fileInfo.Name);
-                File.Move(_fileInfo.FullName, destination);
+                var destination = Path.Combine(fullPath, _name);
+                File.Move(_fullPath, destination);
             });
         }
 
-        public string Name { get { return _fileInfo.Name; } }
+        public string Name { get { return _name; } }
+
+        public string FullPath {  get { return _fullPath; } }
 
         public override string ToString()
         {

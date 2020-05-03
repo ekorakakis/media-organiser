@@ -31,7 +31,7 @@ namespace MediaOrganiser.ViewModels
                 SelectedPath = section["source"];
                 Destination = section["destination"];
 
-                string datePattern = "ddMMyyyy";
+                string datePattern = "dd/MM/yyyy";
                 DateTime.TryParseExact(section["dateAfter"], datePattern, null, DateTimeStyles.None, out _dateAfter);
 
                 _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
@@ -107,23 +107,24 @@ namespace MediaOrganiser.ViewModels
                 var filtered = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
                 
                 int progressValue = 0;
-                int filteredIndex = 0;
+                int currentFileIndex = 0;
                 double iMax = filtered.Count();
+                // double iMax = files.Count();
                 foreach (var file in filtered)
                 {
                     progressValue++;
                     Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
                     CurrentProgress = workerValue;
                     
-                    var medium = new Medium(file.FullName, file.Name, file.Extension, _destination, _regexPatterns);
+                    var medium = new Medium(file, _destination, _regexPatterns);
                     if (medium.CanProcess())
                     {
-                        filteredIndex++;
+                        currentFileIndex++;
 
                         // to do - probably don't want to process the files here; this should be for loading only
-                        // await medium.ProcessAsync();
+                        await medium.ProcessAsync();
                         _media.Add(medium);
-                        UpdateSummary(filteredIndex);
+                        UpdateSummary(currentFileIndex);
                     }
                 }
             }

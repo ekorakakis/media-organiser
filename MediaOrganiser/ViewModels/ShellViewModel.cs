@@ -13,6 +13,7 @@ namespace MediaOrganiser.ViewModels
 {
     public class ShellViewModel : PropertyChangedBase
     {
+        /* Private Members */
         private String _summary;
         private String _selectedPath;
         private String _destination;
@@ -21,6 +22,7 @@ namespace MediaOrganiser.ViewModels
         private NameValueCollection _regexPatterns;
         private ObservableCollection<Medium> _media;
 
+        /* Constructor */
         public ShellViewModel()
         {
             try
@@ -35,7 +37,6 @@ namespace MediaOrganiser.ViewModels
                 DateTime.TryParseExact(section["dateAfter"], datePattern, null, DateTimeStyles.None, out _dateAfter);
 
                 _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
-                // _regexPatterns = section["regex[atterms"]
             }
             catch (Exception e)
             {
@@ -46,6 +47,7 @@ namespace MediaOrganiser.ViewModels
             }
         }
 
+        /* Public interface */
         public ObservableCollection<Medium> Media
         {
             get { return _media; }
@@ -96,58 +98,6 @@ namespace MediaOrganiser.ViewModels
             }
         }
 
-        private async Task DoLoadingAsync()
-        {
-            try
-            {
-                _media.Clear();
-
-                DirectoryInfo directory = new DirectoryInfo(SelectedPath);
-                FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
-                var filtered = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
-                
-                int progressValue = 0;
-                int currentFileIndex = 0;
-                double iMax = filtered.Count();
-                // double iMax = files.Count();
-                foreach (var file in filtered)
-                {
-                    progressValue++;
-                    Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
-                    CurrentProgress = workerValue;
-                    
-                    var medium = new Medium(file, _destination, _regexPatterns);
-                    if (medium.CanProcess())
-                    {
-                        currentFileIndex++;
-
-                        // to do - probably don't want to process the files here; this should be for loading only
-                        await medium.ProcessAsync();
-                        _media.Add(medium);
-                        UpdateSummary(currentFileIndex);
-                    }
-                }
-            }
-
-            catch (Exception e)
-            {
-                // ApplicationException() - what do we want to do here?
-                // do not swallow the original exception
-                //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                throw e;
-            }
-        }
-
-        private void UpdateSummary(Int32 numberOfFiles)
-        {
-            if (numberOfFiles == 0)
-                Summary = String.Format("No files found");
-            else if (numberOfFiles == 1)
-                Summary = String.Format("{0} file found", numberOfFiles);
-            else
-                Summary = String.Format("{0} files found", numberOfFiles);
-        }
-
         public async void LoadFiles()
         {
             await DoLoadingAsync();
@@ -183,6 +133,75 @@ namespace MediaOrganiser.ViewModels
             {
                 // what do we want to do here?
             }
+        }
+
+        public DateTime DateAfter
+        {
+            get            {                return _dateAfter;             }
+            
+            set
+            {
+                _dateAfter = value;
+                NotifyOfPropertyChange(() => DateAfter);
+            }
+        }
+
+        /* Private helpers */
+        private async Task DoLoadingAsync()
+        {
+            try
+            {
+                _media.Clear();
+
+                DirectoryInfo directory = new DirectoryInfo(SelectedPath);
+                FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
+
+                // Filter criteria:
+                // 1. No hidden files
+                // 2. No files before the pre-configured date
+                var filtered = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
+                
+                int progressValue = 0;
+                int currentFileIndex = 0;
+                double iMax = filtered.Count();
+                // double iMax = files.Count();
+
+                foreach (var file in filtered)
+                {
+                    progressValue++;
+                    Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
+                    CurrentProgress = workerValue;
+                    
+                    var medium = new Medium(file, _destination, _regexPatterns);
+                    if (medium.CanProcess())
+                    {
+                        currentFileIndex++;
+
+                        // to do - probably don't want to process the files here; this should be for loading only
+                        // await medium.ProcessAsync();
+                        _media.Add(medium);
+                        UpdateSummary(currentFileIndex);
+                    }
+                }
+            }
+
+            catch (Exception e)
+            {
+                // ApplicationException() - what do we want to do here?
+                // do not swallow the original exception
+                //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                throw e;
+            }
+        }
+
+        private void UpdateSummary(Int32 numberOfFiles)
+        {
+            if (numberOfFiles == 0)
+                Summary = String.Format("No files found");
+            else if (numberOfFiles == 1)
+                Summary = String.Format("{0} file found", numberOfFiles);
+            else
+                Summary = String.Format("{0} files found", numberOfFiles);
         }
 
         private void Reset()

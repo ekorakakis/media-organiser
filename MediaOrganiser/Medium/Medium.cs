@@ -117,8 +117,8 @@ namespace MediaOrganiser
                 // string month = basePart.Substring(yearIndexFrom + 4, 2);
 
                 // 2. With this information create the full path and physically create the desitnation directory.
-                string yearPath = Path.Combine(_destination, _dateTaken.Year.ToString());
-                string fullPath = Path.Combine(yearPath, _dateTaken.Month.ToString());
+                string yearPath = Path.Combine(_destination, _dateTaken.ToString("yyyy"));
+                string fullPath = Path.Combine(yearPath, _dateTaken.ToString("MM"));
                 Directory.CreateDirectory(fullPath);
 
                 // 3. Move the file to the destination folder

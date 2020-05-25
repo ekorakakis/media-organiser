@@ -9,25 +9,24 @@ namespace MediaOrganiser
 {
     public class Medium : IMedium
     {
-        /// <summary>
-        /// Private members
-        /// </summary>
-
+        /***********************
+         ** Private Members
+         ***********************/
         private FileInfo _file;
         private string _fullPath;
         private string _name;
         private string _extension;
         private bool _hidden;
         private DateTime _dateTaken;
+        private DateTime _dateAfter;
 
         private NameValueCollection _regexPatterns;
         private string _destination;
 
-        /// <summary>
-        /// Construction
-        /// </summary>
-
-        public Medium(FileInfo file, string destination, NameValueCollection regexPatterns)
+        /***********************
+         ** Constructor
+         ***********************/
+        public Medium(FileInfo file, string destination, DateTime dateAfter, NameValueCollection regexPatterns)
         {
             // file properties
             _file = file;
@@ -35,21 +34,20 @@ namespace MediaOrganiser
             _name = file.Name;
             _extension = file.Extension;
             _hidden = file.Attributes.HasFlag(FileAttributes.Hidden);
-
             _dateTaken = CalculateDateAfter(_name);
+            _dateAfter = dateAfter;
 
             // other useful properties
             _destination = destination;
             _regexPatterns = regexPatterns;
         }
 
-        /// <summary>
-        /// Private interface
-        /// </summary>
-
+        /***********************
+         ** Private Interface
+         ***********************/
         private DateTime CalculateDateAfter(string name)
         {
-            DateTime returnDateTime = DateTime.Now;
+            DateTime returnDateTime = DateTime.MinValue;
 
             // 1. Extract the year and the month. 
             // To do so, first find the filename without the extension
@@ -58,65 +56,69 @@ namespace MediaOrganiser
             // Then extract the year; this normally is the first numerical value that 
             // appears in the filename. We have to ignore any other characters before that.
             int yearIndexFrom = basePart.IndexOfAny("0123456789".ToCharArray());
-            string year = basePart.Substring(yearIndexFrom, 4);
-            string month = basePart.Substring(yearIndexFrom + 4, 2);
-            string day = basePart.Substring(yearIndexFrom + 6, 2);
+            if (yearIndexFrom >= 0)
+            {
+                string year = basePart.Substring(yearIndexFrom, 4);
+                string month = basePart.Substring(yearIndexFrom + 4, 2);
+                string day = basePart.Substring(yearIndexFrom + 6, 2);
 
-            string datePattern = "ddMMyyyy";
-            DateTime.TryParseExact(day + month + year , datePattern, null, DateTimeStyles.None, out returnDateTime);
-            
+                string datePattern = "ddMMyyyy";
+                DateTime.TryParseExact(day + month + year, datePattern, null, DateTimeStyles.None, out returnDateTime);
+            }
+
             return returnDateTime;
         }
 
-        /// <summary>
-        /// Public Interface
-        /// </summary>
-
-        public bool CanProcess()
+        private Boolean RegexPatternsMatch()
         {
             // set the default return value to false
             bool returnValue = false;
+            Regex reg;
 
-            // only bother to check if the file has been supplied
-            if (_fullPath != null)
+            // for every regular expression string supplied in the app.config
+            foreach (var regExpression in _regexPatterns)
             {
-                Regex reg;
-
-                // for every regular expression string supplied in the app.config
-                foreach (var regExpression in _regexPatterns)
+                // create a new regex and check if the file's name matches it
+                reg = new Regex(_regexPatterns[regExpression.ToString()]);
+                if (reg.IsMatch(_name))
                 {
-                    // create a new regex and check if the file's name matches it
-                    reg = new Regex(_regexPatterns[regExpression.ToString()]);
-                    if (reg.IsMatch(_name))
-                    {
-                        // if this matches set the return value to true and return. It
-                        // means that we can extract the year and month out of the name.
-                        returnValue = true;
-                        break;
-                    }
+                    // if this matches set the return value to true and return. It
+                    // means that we can extract the year and month out of the name.
+                    returnValue = true;
+                    break;
                 }
             }
 
             return returnValue;
         }
 
+        /***********************
+         ** Public Interface
+         ***********************/
+
+        /// <summary>
+        /// "Filtering" criteria:
+        /// 1. A file has actually been supplied
+        /// 2. It's not hidden
+        /// 3. No files before the pre-configured date
+        /// 4. It matches the regex
+        /// </summary>
+        /// <returns></returns>
+        public bool CanProcess()
+        {
+            // return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter && RegexPatternsMatch());
+
+            // 105: return true;
+            // 104: return !_hidden;
+            // 104: return (_fullPath != null && !_hidden);
+            return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter);
+        }
+
         public async Task ProcessAsync()
         {
             await Task.Run(() =>
             {
-                // await Task.Delay(1); // temp, replace this with processing
-                
-                // 1. Extract the year and the month. 
-                // To do so, first find the filename without the extension
-                // string basePart = _name.Substring(0, _name.IndexOf(_extension));
-
-                // Then extract the year; this normally is the first numerical value that 
-                // appears in the filename. We have to ignore any other characters before that.
-                // int yearIndexFrom = basePart.IndexOfAny("0123456789".ToCharArray());
-                // string year = basePart.Substring(yearIndexFrom, 4);
-                // string month = basePart.Substring(yearIndexFrom + 4, 2);
-
-                // 2. With this information create the full path and physically create the desitnation directory.
+                // Create the full path and physically create the desitnation directory.
                 string yearPath = Path.Combine(_destination, _dateTaken.ToString("yyyy"));
                 string fullPath = Path.Combine(yearPath, _dateTaken.ToString("MM"));
                 Directory.CreateDirectory(fullPath);
@@ -135,8 +137,6 @@ namespace MediaOrganiser
 
         private DateTime DateTaken { get { return _dateTaken; } }
         
-        // private bool _hidden;
-
         public override string ToString()
         {
             return this.Name;

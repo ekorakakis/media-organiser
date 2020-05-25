@@ -13,7 +13,9 @@ namespace MediaOrganiser.ViewModels
 {
     public class ShellViewModel : PropertyChangedBase
     {
-        /* Private Members */
+        /***********************
+         ** Private Members
+         ***********************/
         private String _summary;
         private String _selectedPath;
         private String _destination;
@@ -22,7 +24,9 @@ namespace MediaOrganiser.ViewModels
         private NameValueCollection _regexPatterns;
         private ObservableCollection<Medium> _media;
 
-        /* Constructor */
+        /***********************
+         ** Constructor 
+         ***********************/
         public ShellViewModel()
         {
             try
@@ -47,7 +51,9 @@ namespace MediaOrganiser.ViewModels
             }
         }
 
-        /* Public interface */
+        /***********************
+         ** Public Interface
+         ***********************/
         public ObservableCollection<Medium> Media
         {
             get { return _media; }
@@ -137,8 +143,7 @@ namespace MediaOrganiser.ViewModels
 
         public DateTime DateAfter
         {
-            get            {                return _dateAfter;             }
-            
+            get { return _dateAfter; }
             set
             {
                 _dateAfter = value;
@@ -146,7 +151,9 @@ namespace MediaOrganiser.ViewModels
             }
         }
 
-        /* Private helpers */
+        /***********************
+         ** Private Helpers
+         ***********************/
         private async Task DoLoadingAsync()
         {
             try
@@ -154,25 +161,23 @@ namespace MediaOrganiser.ViewModels
                 _media.Clear();
 
                 DirectoryInfo directory = new DirectoryInfo(SelectedPath);
+                
+                // No filtering to be applied here; the filtering will happen once we have a populated collection of media
                 FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
 
-                // Filter criteria:
-                // 1. No hidden files
-                // 2. No files before the pre-configured date
-                var filtered = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
-                
                 int progressValue = 0;
                 int currentFileIndex = 0;
-                double iMax = filtered.Count();
-                // double iMax = files.Count();
+                double iMax = files.Count();
 
-                foreach (var file in filtered)
+                foreach (var file in files)
                 {
                     progressValue++;
                     Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
                     CurrentProgress = workerValue;
                     
-                    var medium = new Medium(file, _destination, _regexPatterns);
+                    var medium = new Medium(file, _destination, _dateAfter, _regexPatterns);
+
+                    // The CanProcess method can "filter out" any media that are not 
                     if (medium.CanProcess())
                     {
                         currentFileIndex++;
@@ -183,6 +188,9 @@ namespace MediaOrganiser.ViewModels
                         UpdateSummary(currentFileIndex);
                     }
                 }
+
+                // this needs run outside the loop just in case there was none found ...
+                UpdateSummary(currentFileIndex);
             }
 
             catch (Exception e)

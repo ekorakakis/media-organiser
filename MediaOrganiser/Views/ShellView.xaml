@@ -16,57 +16,50 @@
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="{DynamicResource MaterialDesignFont}"
         Title="Media Organiser" Height="750" Width="800">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition Height="*"></RowDefinition>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="73*"></ColumnDefinition>
-            <ColumnDefinition Width="528*"/>
-            <ColumnDefinition Width="auto"></ColumnDefinition>
-        </Grid.ColumnDefinitions>
-
-        <materialDesign:Card Grid.Row="0" Padding="32" Margin="16,16,16,0" Width="auto" Grid.ColumnSpan="2">
-            <TextBlock Style="{DynamicResource MaterialDesignTitleTextBlock}">Media Organiser</TextBlock>
-        </materialDesign:Card>
-        <materialDesign:Card Grid.Row="0" Grid.Column="2" Padding="32" Margin="16,16,16,0" Width="160px">
-            <DatePicker Name="DateAfter"></DatePicker>
-        </materialDesign:Card>
-        <TextBlock Grid.Row="1" Grid.Column="0" Padding="32 0 32 0" Margin="16,16,16,0" Height="81" 
-                   Style="{DynamicResource MaterialDesignSubheadingTextBlock}" x:Name="SelectedPath" 
-                   Text="This is where the source path will be displayed"
-                   TextWrapping="Wrap" VerticalAlignment="Top" TextAlignment="Left" Grid.ColumnSpan="2" />
-        <Button Grid.Row="1" Grid.Column="2" x:Name="BrowseSource" Content="Browse" 
-                Padding="32" Margin="0,16,16,0" HorizontalAlignment="Right" VerticalAlignment="Top" Height="81" Width="160"
-                cal:Message.Attach="[Event Click] = [Action BrowseSource]" />
-        <TextBlock Grid.Row="2" Grid.Column="0" Padding="32 0 32 0" Margin="16,16,16,0" Height="81" 
-                   Style="{DynamicResource MaterialDesignSubheadingTextBlock}" x:Name="Destination" 
-                   Text="This is where the destination path will be displayed"
-                   TextWrapping="Wrap" VerticalAlignment="Top" TextAlignment="Left" Grid.ColumnSpan="2" />
-        <Button Grid.Row="2" Grid.Column="2" x:Name="BrowseDestination" Content="Browse" Width="160"
-                Padding="32" Margin="0,16,16,0" HorizontalAlignment="Right" VerticalAlignment="Top" Height="81"
-                cal:Message.Attach="[Event Click] = [Action BrowseDestination]" />
-        <Button Grid.Row="3" Grid.ColumnSpan="3" x:Name="LoadFiles" Content="Load Files" 
-                Padding="32" Margin="16,16,16,0" HorizontalAlignment="Stretch" VerticalAlignment="Top" Height="81"
-                cal:Message.Attach="[Event Click] = [Action LoadFiles]" />
-        <TextBlock Grid.Row="4" Grid.ColumnSpan="3" Padding="32 0 32 0" Margin="16,16,16,0" Height="81" 
-                   Style="{DynamicResource MaterialDesignSubheadingTextBlock}" x:Name="Summary" 
-                   Text="0 files found"
-                   TextWrapping="Wrap" VerticalAlignment="Top" TextAlignment="Left" />
-        <!--<TextBlock Grid.Row="4" Grid.ColumnSpan="2" Padding="32 0 32 0" Margin="16" Height="81" 
-                   Style="{DynamicResource MaterialDesignSubheadingTextBlock}" x:Name="CurrentProgress" 
-                   Text="Progress"
-                   TextWrapping="Wrap" VerticalAlignment="Top" TextAlignment="Left" />-->
-        <ProgressBar Grid.Row="5" Grid.ColumnSpan="3" x:Name="CurrentProgress" 
-                     Padding="32 0 32 0" Margin="32 0 32 0"
-                     Minimum="0" Maximum="100" IsIndeterminate="False" />
-        <DataGrid Grid.Row="6" Grid.ColumnSpan="3" Padding="32 0 32 0" 
-                  ItemsSource="{Binding Media}" />
-    </Grid>
+    <ScrollViewer>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="73*"></ColumnDefinition>
+                <ColumnDefinition Width="528*"/>
+                <ColumnDefinition Width="auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <materialDesign:Card Grid.Row="0" Padding="32" Margin="16,16,16,0" Width="auto" Grid.ColumnSpan="2">
+                <TextBlock Style="{DynamicResource MaterialDesignTitleTextBlock}">Media Organiser</TextBlock>
+            </materialDesign:Card>
+            <materialDesign:Card Grid.Row="0" Grid.Column="2" Padding="32" Margin="16,16,16,0" Width="160px">
+                <DatePicker Name="DateAfter"></DatePicker>
+            </materialDesign:Card>
+            <TextBlock Grid.Row="1" Grid.Column="0" Padding="32 32 32 0" Margin="16,16,16,0" Height="81" 
+                       Style="{DynamicResource MaterialDesignSubheadingTextBlock}" x:Name="SelectedPath" 
+                       Text="This is where the source path will be displayed"
+                       TextWrapping="Wrap" VerticalAlignment="Top" TextAlignment="Left" Grid.ColumnSpan="2" />
+            <Button Grid.Row="1" Grid.Column="2" x:Name="BrowseSource" Content="Browse" 
+                    Padding="32" Margin="0,16,16,0" HorizontalAlignment="Right" VerticalAlignment="Top" Height="81" Width="160"
+                    cal:Message.Attach="[Event Click] = [Action BrowseSource]" />
+            <ProgressBar Grid.Row="2" Grid.ColumnSpan="3" x:Name="CurrentProgress" 
+                         Padding="32 32 32 0" Margin="32 32 32 0"
+                         Minimum="0" Maximum="100" IsIndeterminate="False" />
+            <Button Grid.Row="3" Grid.ColumnSpan="3" x:Name="LoadFiles" Content="Reload" 
+                    Padding="32" Margin="16,16,16,0" HorizontalAlignment="Stretch" VerticalAlignment="Top" Height="81"
+                    cal:Message.Attach="[Event Click] = [Action LoadFiles]" />
+            <DataGrid Grid.Row="4" Grid.ColumnSpan="3" Padding="32 0 32 0" 
+                      ItemsSource="{Binding Media}" />
+            <TextBlock Grid.Row="5" Grid.ColumnSpan="3" Padding="32 0 32 0" Margin="16,16,16,0" Height="81" 
+                       Style="{DynamicResource MaterialDesignSubheadingTextBlock}" x:Name="Summary" 
+                       Text="0 files found"
+                       TextWrapping="Wrap" VerticalAlignment="Top" TextAlignment="Left" />
+            <Button Grid.Row="6" Grid.ColumnSpan="3" x:Name="ProcessFiles" Content="Process" 
+                    Padding="32" Margin="16,16,16,0" HorizontalAlignment="Stretch" VerticalAlignment="Top" Height="81"
+                    cal:Message.Attach="[Event Click] = [Action ProcessFiles]" />
+        </Grid>
+    </ScrollViewer>
 </Window>

@@ -41,6 +41,8 @@ namespace MediaOrganiser.ViewModels
                 DateTime.TryParseExact(section["dateAfter"], datePattern, null, DateTimeStyles.None, out _dateAfter);
 
                 _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
+
+                LoadFiles();
             }
             catch (Exception e)
             {
@@ -107,6 +109,11 @@ namespace MediaOrganiser.ViewModels
         public async void LoadFiles()
         {
             await DoLoadingAsync();
+        }
+
+        public async void ProcessFiles()
+        {
+            await DoProcessingAsync();
         }
 
         public void BrowseSource()
@@ -180,11 +187,15 @@ namespace MediaOrganiser.ViewModels
                     // The CanProcess method can "filter out" any media that are not 
                     if (medium.CanProcess())
                     {
-                        currentFileIndex++;
+                        var duplicateMedium = _media.FirstOrDefault(x => (x.Name == medium.Name) && (x.Length <= medium.Length));
+                        if (duplicateMedium != null)
+                        { 
+                            _media.Remove(duplicateMedium);
+                            currentFileIndex--;
+                        }
 
-                        // to do - probably don't want to process the files here; this should be for loading only
-                        // await medium.ProcessAsync();
                         _media.Add(medium);
+                        currentFileIndex++;
                         UpdateSummary(currentFileIndex);
                     }
                 }
@@ -192,7 +203,23 @@ namespace MediaOrganiser.ViewModels
                 // this needs run outside the loop just in case there was none found ...
                 UpdateSummary(currentFileIndex);
             }
+            catch (Exception e)
+            {
+                // ApplicationException() - what do we want to do here?
+                // do not swallow the original exception
+                //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                throw e;
+            }
+        }
 
+        private async Task DoProcessingAsync()
+        {
+            try
+            {
+                // todo: question - MessageBox.Show() are you sure?
+                foreach (var medium in _media)
+                    await medium.ProcessAsync();
+            }
             catch (Exception e)
             {
                 // ApplicationException() - what do we want to do here?

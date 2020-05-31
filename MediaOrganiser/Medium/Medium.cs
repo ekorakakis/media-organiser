@@ -19,6 +19,7 @@ namespace MediaOrganiser
         private bool _hidden;
         private DateTime _dateTaken;
         private DateTime _dateAfter;
+        private long _length;
 
         private NameValueCollection _regexPatterns;
         private string _destination;
@@ -34,6 +35,7 @@ namespace MediaOrganiser
             _name = file.Name;
             _extension = file.Extension;
             _hidden = file.Attributes.HasFlag(FileAttributes.Hidden);
+            _length = file.Length;
             _dateTaken = CalculateDateAfter(_name);
             _dateAfter = dateAfter;
 
@@ -106,12 +108,11 @@ namespace MediaOrganiser
         /// <returns></returns>
         public bool CanProcess()
         {
-            // return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter && RegexPatternsMatch());
-
             // 105: return true;
             // 104: return !_hidden;
             // 104: return (_fullPath != null && !_hidden);
-            return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter);
+            //  42: return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter);
+            return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter && RegexPatternsMatch());
         }
 
         public async Task ProcessAsync()
@@ -135,8 +136,10 @@ namespace MediaOrganiser
 
         public string Extension { get { return _extension; } }
 
-        private DateTime DateTaken { get { return _dateTaken; } }
-        
+        public DateTime DateTaken { get { return _dateTaken; } }
+
+        public long Length { get { return _length; } }
+
         public override string ToString()
         {
             return this.Name;

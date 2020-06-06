@@ -71,12 +71,11 @@
                 </DataGrid.Columns>-->
             </DataGrid>
         </ScrollViewer>
-        <TextBlock Grid.Row="6" Grid.ColumnSpan="3" Padding="32 0 32 0" Margin="16, 16, 16, 0" Height="81" 
-                    Style="{DynamicResource MaterialDesignSubheadingTextBlock}" x:Name="Summary" 
-                    Text="0 files found"
-                    TextWrapping="Wrap" VerticalAlignment="Top" TextAlignment="Left" />
+        <TextBlock Grid.Row="6" Grid.ColumnSpan="3" Padding="32 0 32 0" Margin="0 12 0 0" 
+                   Style="{DynamicResource MaterialDesignSubheadingTextBlock}" x:Name="Summary" 
+                   Text="0 files found" TextWrapping="Wrap" VerticalAlignment="Center" TextAlignment="Left" />
         <!-- Left Top Right Bottom -->
-        <Button Grid.Row="7" Grid.ColumnSpan="3" x:Name="ProcessFiles" Content="Process" 
+        <Button Grid.Row="7" Grid.ColumnSpan="3" x:Name="Process" Content="Process" 
                 Padding="32 0 32 0" Margin="16,16,16,16" HorizontalAlignment="Stretch" VerticalAlignment="Top" Height="81"
                 cal:Message.Attach="[Event Click] = [Action ProcessFiles]" />
     </Grid>

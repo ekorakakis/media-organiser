@@ -48,7 +48,6 @@ namespace MediaOrganiser.ViewModels
             }
         }
 
-
         /***********************
          ** Public Interface
          ***********************/
@@ -208,9 +207,9 @@ namespace MediaOrganiser.ViewModels
             return destination;
         }
 
-
         private async Task DoLoadingAsync()
         {
+            // todo - this is not an async process anymore?
             _media.Clear();
 
             if (CanProceed)
@@ -236,7 +235,7 @@ namespace MediaOrganiser.ViewModels
                         var medium = new Medium(file, _destination, _dateAfter, _regexPatterns);
 
                         // The CanProcess method can "filter out" any media that are not 
-                        if (medium.CanProcess())
+                        if (medium.CanProcess)
                         {
                             var duplicateMedium = _media.FirstOrDefault(x => (x.Name == medium.Name) && (x.Length <= medium.Length));
                             if (duplicateMedium != null)
@@ -259,6 +258,9 @@ namespace MediaOrganiser.ViewModels
                     // ApplicationException() - what do we want to do here?
                     // do not swallow the original exception
                     //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    
+                    // do we need to update this here too?
+                    // UpdateSummary(currentFileIndex);
                     throw e;
                 }
             }
@@ -273,6 +275,8 @@ namespace MediaOrganiser.ViewModels
             try
             {
                 // todo: question - MessageBox.Show() are you sure?
+                // also another todo - add another progress bar (or reuse the same but place elsewhere?) to show progress as you move files about
+                // also another todo - how do we enable/disable statuses as we get into the various methods (so buttons disabled when loading the files or when processing them)
                 foreach (var medium in _media)
                     await medium.ProcessAsync();
             }

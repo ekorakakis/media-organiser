@@ -115,14 +115,12 @@ namespace MediaOrganiser
         /// 3. No files before the pre-configured date
         /// 4. It matches the regex
         /// </summary>
-        /// <returns></returns>
-        public bool CanProcess()
+        public bool CanProcess
         {
-            // 105: return true;
-            // 104: return !_hidden;
-            // 104: return (_fullPath != null && !_hidden);
-            //  42: return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter);
-            return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter && RegexPatternsMatch());
+            get
+            {
+                return (_fullPath != null && !_hidden && _dateTaken >= _dateAfter && RegexPatternsMatch());
+            }
         }
 
         public async Task ProcessAsync()
@@ -137,6 +135,8 @@ namespace MediaOrganiser
                 // 3. Move the file to the destination folder
                 var destination = Path.Combine(fullPath, _name);
                 File.Move(_fullPath, destination);
+
+                // mark this medium as processed
                 _isProcessed = true;
             });
         }

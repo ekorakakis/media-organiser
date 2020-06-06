@@ -19,6 +19,8 @@ namespace MediaOrganiser.ViewModels
         private String _summary;
         private String _selectedPath;
         private String _destination;
+        private bool _isSelectedPathValid;
+        private bool _isDestinationValid;
         private Int32 _currentProgress;
         private DateTime _dateAfter;
         private NameValueCollection _regexPatterns;
@@ -32,21 +34,12 @@ namespace MediaOrganiser.ViewModels
             try
             {
                 _media = new ObservableCollection<Medium>();
-                
-                var section = ConfigurationManager.GetSection("environment") as NameValueCollection;
-                SelectedPath = section["source"];
-                Destination = section["destination"];
 
-                string datePattern = "dd/MM/yyyy";
-                DateTime.TryParseExact(section["dateAfter"], datePattern, null, DateTimeStyles.None, out _dateAfter);
-
-                _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
+                InitShell();
 
                 LoadFiles();
             }
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             catch (Exception e)
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             {
                 // todo
                 // what we should be doing here is to show them a screen where they can input this information and we store it
@@ -54,6 +47,7 @@ namespace MediaOrganiser.ViewModels
                 // third best choice is show them a message
             }
         }
+
 
         /***********************
          ** Public Interface
@@ -73,7 +67,8 @@ namespace MediaOrganiser.ViewModels
             get { return _selectedPath; }
             set
             {
-                _selectedPath = value;
+                _selectedPath = GetSelectedPath(value);                
+                _isSelectedPathValid = !string.IsNullOrEmpty(_selectedPath);
                 NotifyOfPropertyChange(() => SelectedPath);
             }
         }
@@ -83,8 +78,18 @@ namespace MediaOrganiser.ViewModels
             get { return _destination; }
             set
             {
-                _destination = value;
+                _destination = GetDestination(value);
+                _isDestinationValid = !string.IsNullOrEmpty(_destination);
                 NotifyOfPropertyChange(() => Destination);
+            }
+        }
+
+        public bool CanProceed
+        {
+            get 
+            { 
+                // Processing possible only if both source and destinations paths are valid
+                return _isSelectedPathValid && _isDestinationValid;  
             }
         }
 
@@ -115,6 +120,7 @@ namespace MediaOrganiser.ViewModels
 
         public async void ProcessFiles()
         {
+
             await DoProcessingAsync();
         }
 
@@ -128,9 +134,7 @@ namespace MediaOrganiser.ViewModels
                 SelectedPath = folderDialog.SelectedPath;
                 Reset();
             }
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             catch (Exception e)
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             {
                 // what do we want to do here?
             }
@@ -146,9 +150,7 @@ namespace MediaOrganiser.ViewModels
                 Destination = folderDialog.SelectedPath;
                 Reset();
             }
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             catch (Exception e)
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             {
                 // what do we want to do here?
             }
@@ -167,56 +169,102 @@ namespace MediaOrganiser.ViewModels
         /***********************
          ** Private Helpers
          ***********************/
-#pragma warning disable CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
-        private async Task DoLoadingAsync()
-#pragma warning restore CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
+        private void InitShell()
         {
-            try
+            // Load app configuration
+            var section = ConfigurationManager.GetSection("environment") as NameValueCollection;
+
+            SelectedPath = section["source"];       
+            Destination = section["destination"];   
+
+            string datePattern = section["datePattern"];
+            DateTime.TryParseExact(section["dateAfter"], datePattern, null, DateTimeStyles.None, out _dateAfter);
+
+            _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
+        }
+
+        private string GetSelectedPath(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
             {
-                _media.Clear();
-
-                DirectoryInfo directory = new DirectoryInfo(SelectedPath);
-                
-                // No filtering to be applied here; the filtering will happen once we have a populated collection of media
-                FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
-
-                int progressValue = 0;
-                int currentFileIndex = 0;
-                double iMax = files.Count();
-
-                foreach (var file in files)
-                {
-                    progressValue++;
-                    Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
-                    CurrentProgress = workerValue;
-                    
-                    var medium = new Medium(file, _destination, _dateAfter, _regexPatterns);
-
-                    // The CanProcess method can "filter out" any media that are not 
-                    if (medium.CanProcess())
-                    {
-                        var duplicateMedium = _media.FirstOrDefault(x => (x.Name == medium.Name) && (x.Length <= medium.Length));
-                        if (duplicateMedium != null)
-                        { 
-                            _media.Remove(duplicateMedium);
-                            currentFileIndex--;
-                        }
-
-                        _media.Add(medium);
-                        currentFileIndex++;
-                        UpdateSummary(currentFileIndex);
-                    }
-                }
-
-                // this needs run outside the loop just in case there was none found ...
-                UpdateSummary(currentFileIndex);
+                return string.Empty;    // or can be Last Known Good Path
             }
-            catch (Exception e)
+
+            return path;
+        }
+
+        private string GetDestination(string destination)
+        {
+            if (string.IsNullOrEmpty(destination))
             {
-                // ApplicationException() - what do we want to do here?
-                // do not swallow the original exception
-                //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                throw e;
+                // OS location of the user picture folder by default
+                // (or can be Last Known Good Path)
+                destination = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+            }
+
+            if (!Directory.Exists(destination))
+                return string.Empty;
+
+            return destination;
+        }
+
+
+        private async Task DoLoadingAsync()
+        {
+            _media.Clear();
+
+            if (CanProceed)
+            {
+                try
+                {
+                    DirectoryInfo directory = new DirectoryInfo(SelectedPath);
+
+                    // No filtering to be applied here; the filtering will happen once we have a populated collection of media
+                    FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
+
+                    int progressValue = 0;
+                    int currentFileIndex = 0;
+                    double iMax = files.Count();
+
+
+                    foreach (var file in files)
+                    {
+                        progressValue++;
+                        Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
+                        CurrentProgress = workerValue;
+
+                        var medium = new Medium(file, _destination, _dateAfter, _regexPatterns);
+
+                        // The CanProcess method can "filter out" any media that are not 
+                        if (medium.CanProcess())
+                        {
+                            var duplicateMedium = _media.FirstOrDefault(x => (x.Name == medium.Name) && (x.Length <= medium.Length));
+                            if (duplicateMedium != null)
+                            {
+                                _media.Remove(duplicateMedium);
+                                currentFileIndex--;
+                            }
+
+                            _media.Add(medium);
+                            currentFileIndex++;
+                            UpdateSummary(currentFileIndex);
+                        }
+                    }
+
+                    // this needs run outside the loop just in case there was none found ...
+                    UpdateSummary(currentFileIndex);
+                }
+                catch (Exception e)
+                {
+                    // ApplicationException() - what do we want to do here?
+                    // do not swallow the original exception
+                    //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    throw e;
+                }
+            }
+            else
+            {
+                // TODO Prompt user to browse for valid paths                
             }
         }
 

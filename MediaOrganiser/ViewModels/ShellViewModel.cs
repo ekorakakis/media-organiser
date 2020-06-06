@@ -19,6 +19,8 @@ namespace MediaOrganiser.ViewModels
         private String _summary;
         private String _selectedPath;
         private String _destination;
+        private bool _isSelectedPathValid;
+        private bool _isDestinationValid;
         private Int32 _currentProgress;
         private DateTime _dateAfter;
         private NameValueCollection _regexPatterns;
@@ -32,15 +34,8 @@ namespace MediaOrganiser.ViewModels
             try
             {
                 _media = new ObservableCollection<Medium>();
-                
-                var section = ConfigurationManager.GetSection("environment") as NameValueCollection;
-                SelectedPath = section["source"];
-                Destination = section["destination"];
 
-                string datePattern = "dd/MM/yyyy";
-                DateTime.TryParseExact(section["dateAfter"], datePattern, null, DateTimeStyles.None, out _dateAfter);
-
-                _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
+                InitShell();
 
                 LoadFiles();
             }
@@ -52,6 +47,7 @@ namespace MediaOrganiser.ViewModels
                 // third best choice is show them a message
             }
         }
+
 
         /***********************
          ** Public Interface
@@ -71,7 +67,8 @@ namespace MediaOrganiser.ViewModels
             get { return _selectedPath; }
             set
             {
-                _selectedPath = value;
+                _selectedPath = GetSelectedPath(value);                
+                _isSelectedPathValid = !string.IsNullOrEmpty(_selectedPath);
                 NotifyOfPropertyChange(() => SelectedPath);
             }
         }
@@ -81,8 +78,18 @@ namespace MediaOrganiser.ViewModels
             get { return _destination; }
             set
             {
-                _destination = value;
+                _destination = GetDestination(value);
+                _isDestinationValid = !string.IsNullOrEmpty(_destination);
                 NotifyOfPropertyChange(() => Destination);
+            }
+        }
+
+        public bool CanProceed
+        {
+            get 
+            { 
+                // Processing possible only if both source and destinations paths are valid
+                return _isSelectedPathValid && _isDestinationValid;  
             }
         }
 
@@ -113,6 +120,7 @@ namespace MediaOrganiser.ViewModels
 
         public async void ProcessFiles()
         {
+
             await DoProcessingAsync();
         }
 
@@ -161,54 +169,102 @@ namespace MediaOrganiser.ViewModels
         /***********************
          ** Private Helpers
          ***********************/
+        private void InitShell()
+        {
+            // Load app configuration
+            var section = ConfigurationManager.GetSection("environment") as NameValueCollection;
+
+            SelectedPath = section["source"];       
+            Destination = section["destination"];   
+
+            string datePattern = section["datePattern"];
+            DateTime.TryParseExact(section["dateAfter"], datePattern, null, DateTimeStyles.None, out _dateAfter);
+
+            _regexPatterns = ConfigurationManager.GetSection("regexpatterns") as NameValueCollection;
+        }
+
+        private string GetSelectedPath(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            {
+                return string.Empty;    // or can be Last Known Good Path
+            }
+
+            return path;
+        }
+
+        private string GetDestination(string destination)
+        {
+            if (string.IsNullOrEmpty(destination))
+            {
+                // OS location of the user picture folder by default
+                // (or can be Last Known Good Path)
+                destination = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+            }
+
+            if (!Directory.Exists(destination))
+                return string.Empty;
+
+            return destination;
+        }
+
+
         private async Task DoLoadingAsync()
         {
-            try
+            _media.Clear();
+
+            if (CanProceed)
             {
-                _media.Clear();
-
-                DirectoryInfo directory = new DirectoryInfo(SelectedPath);
-                
-                // No filtering to be applied here; the filtering will happen once we have a populated collection of media
-                FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
-
-                int progressValue = 0;
-                int currentFileIndex = 0;
-                double iMax = files.Count();
-
-                foreach (var file in files)
+                try
                 {
-                    progressValue++;
-                    Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
-                    CurrentProgress = workerValue;
-                    
-                    var medium = new Medium(file, _destination, _dateAfter, _regexPatterns);
+                    DirectoryInfo directory = new DirectoryInfo(SelectedPath);
 
-                    // The CanProcess method can "filter out" any media that are not 
-                    if (medium.CanProcess())
+                    // No filtering to be applied here; the filtering will happen once we have a populated collection of media
+                    FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
+
+                    int progressValue = 0;
+                    int currentFileIndex = 0;
+                    double iMax = files.Count();
+
+
+                    foreach (var file in files)
                     {
-                        var duplicateMedium = _media.FirstOrDefault(x => (x.Name == medium.Name) && (x.Length <= medium.Length));
-                        if (duplicateMedium != null)
-                        { 
-                            _media.Remove(duplicateMedium);
-                            currentFileIndex--;
+                        progressValue++;
+                        Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
+                        CurrentProgress = workerValue;
+
+                        var medium = new Medium(file, _destination, _dateAfter, _regexPatterns);
+
+                        // The CanProcess method can "filter out" any media that are not 
+                        if (medium.CanProcess())
+                        {
+                            var duplicateMedium = _media.FirstOrDefault(x => (x.Name == medium.Name) && (x.Length <= medium.Length));
+                            if (duplicateMedium != null)
+                            {
+                                _media.Remove(duplicateMedium);
+                                currentFileIndex--;
+                            }
+
+                            _media.Add(medium);
+                            currentFileIndex++;
+                            UpdateSummary(currentFileIndex);
                         }
-
-                        _media.Add(medium);
-                        currentFileIndex++;
-                        UpdateSummary(currentFileIndex);
                     }
-                }
 
-                // this needs run outside the loop just in case there was none found ...
-                UpdateSummary(currentFileIndex);
+                    // this needs run outside the loop just in case there was none found ...
+                    UpdateSummary(currentFileIndex);
+                }
+                catch (Exception e)
+                {
+                    // ApplicationException() - what do we want to do here?
+                    // do not swallow the original exception
+                    //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    throw e;
+                }
             }
-            catch (Exception e)
+            else
             {
-                // ApplicationException() - what do we want to do here?
-                // do not swallow the original exception
-                //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                throw e;
+                // TODO Prompt user to browse for valid paths                
             }
         }
 

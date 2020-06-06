@@ -24,5 +24,10 @@ namespace MediaOrganiser.Views
         {
             InitializeComponent();
         }
+
+        private void LoadFiles_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

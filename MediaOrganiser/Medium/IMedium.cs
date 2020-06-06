@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace MediaOrganiser
 {
@@ -7,5 +8,17 @@ namespace MediaOrganiser
         Task ProcessAsync();
 
         bool CanProcess();
+
+        string Name { get; }
+
+        string FullPath { get; }
+
+        string Extension { get; }
+
+        DateTime DateTaken { get; }
+
+        long Length { get ; }
+
+        bool IsProcessed { get; }
     }
 }

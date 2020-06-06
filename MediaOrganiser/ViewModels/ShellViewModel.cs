@@ -44,7 +44,9 @@ namespace MediaOrganiser.ViewModels
 
                 LoadFiles();
             }
+#pragma warning disable CS0168 // The variable 'e' is declared but never used
             catch (Exception e)
+#pragma warning restore CS0168 // The variable 'e' is declared but never used
             {
                 // todo
                 // what we should be doing here is to show them a screen where they can input this information and we store it
@@ -126,7 +128,9 @@ namespace MediaOrganiser.ViewModels
                 SelectedPath = folderDialog.SelectedPath;
                 Reset();
             }
+#pragma warning disable CS0168 // The variable 'e' is declared but never used
             catch (Exception e)
+#pragma warning restore CS0168 // The variable 'e' is declared but never used
             {
                 // what do we want to do here?
             }
@@ -142,7 +146,9 @@ namespace MediaOrganiser.ViewModels
                 Destination = folderDialog.SelectedPath;
                 Reset();
             }
+#pragma warning disable CS0168 // The variable 'e' is declared but never used
             catch (Exception e)
+#pragma warning restore CS0168 // The variable 'e' is declared but never used
             {
                 // what do we want to do here?
             }
@@ -161,7 +167,9 @@ namespace MediaOrganiser.ViewModels
         /***********************
          ** Private Helpers
          ***********************/
+#pragma warning disable CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
         private async Task DoLoadingAsync()
+#pragma warning restore CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
         {
             try
             {

@@ -7,22 +7,32 @@ using System.Threading.Tasks;
 
 namespace MediaOrganiser
 {
+    /// <summary>
+    /// Implements the <see cref="IMedium" /> interface but there is no exception handling here. 
+    /// The caller is responsible for handling any errors that may happen here.
+    /// </summary>
     public class Medium : IMedium
     {
         /***********************
          ** Private Members
          ***********************/
+
+        // Passed in the constructor
         private FileInfo _file;
+        private string _destination;
+        private DateTime _dateAfter;
+        private NameValueCollection _regexPatterns;
+
+        // Derived by the objects passed in the constructor (for ease of use)
         private string _fullPath;
         private string _name;
         private string _extension;
         private bool _hidden;
-        private DateTime _dateTaken;
-        private DateTime _dateAfter;
         private long _length;
 
-        private NameValueCollection _regexPatterns;
-        private string _destination;
+        // Calculated
+        private DateTime _dateTaken;
+        private bool _isProcessed;
 
         /***********************
          ** Constructor
@@ -127,6 +137,7 @@ namespace MediaOrganiser
                 // 3. Move the file to the destination folder
                 var destination = Path.Combine(fullPath, _name);
                 File.Move(_fullPath, destination);
+                _isProcessed = true;
             });
         }
 
@@ -139,6 +150,8 @@ namespace MediaOrganiser
         public DateTime DateTaken { get { return _dateTaken; } }
 
         public long Length { get { return _length; } }
+
+        public bool IsProcessed {  get { return _isProcessed; } }
 
         public override string ToString()
         {

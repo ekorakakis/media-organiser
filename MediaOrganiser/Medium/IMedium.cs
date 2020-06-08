@@ -7,7 +7,7 @@ namespace MediaOrganiser
     {
         Task ProcessAsync();
 
-        bool CanProcess();
+        bool CanProcess { get; }
 
         string Name { get; }
 

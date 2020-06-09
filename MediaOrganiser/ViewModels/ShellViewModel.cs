@@ -6,6 +6,7 @@ using System.Configuration;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Configuration;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -67,7 +68,14 @@ namespace MediaOrganiser.ViewModels
             set
             {
                 _selectedPath = GetSelectedPath(value);                
+                
                 _isSelectedPathValid = !string.IsNullOrEmpty(_selectedPath);
+                if (_isSelectedPathValid)
+                {
+                    // Save last known good path
+                    SaveAppSetting("environment", "source", _selectedPath);
+                }
+
                 NotifyOfPropertyChange(() => SelectedPath);
             }
         }
@@ -78,7 +86,14 @@ namespace MediaOrganiser.ViewModels
             set
             {
                 _destination = GetDestination(value);
+        
                 _isDestinationValid = !string.IsNullOrEmpty(_destination);
+                if (_isDestinationValid)
+                {
+                    // Save last known good path
+                    SaveAppSetting("environment", "destination", _destination);
+                }
+
                 NotifyOfPropertyChange(() => Destination);
             }
         }
@@ -114,7 +129,14 @@ namespace MediaOrganiser.ViewModels
 
         public async void LoadFiles()
         {
-            await DoLoadingAsync();
+            if (CanProceed)
+            {
+                await DoLoadingAsync();
+            }
+            else
+            {
+                // TODO Prompt user to browse for valid paths                
+            }
         }
 
         public async void ProcessFiles()
@@ -207,66 +229,87 @@ namespace MediaOrganiser.ViewModels
             return destination;
         }
 
+        private void SaveAppSetting(string section, string key, string value)
+        {
+            // Persist setting value in app config
+            try
+            {
+                var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+
+                var settings = ((AppSettingsSection)config.GetSection(section)).Settings;
+                                
+                if (settings[key] == null)
+                {
+                    settings.Add(key, value);
+                }
+                else
+                {
+                    settings[key].Value = value;
+                }
+
+                config.Save(ConfigurationSaveMode.Full);
+
+                ConfigurationManager.RefreshSection(section);
+            }
+            catch (ConfigurationErrorsException)
+            {
+                // what do we want to do here?
+            }
+        }
+
         private async Task DoLoadingAsync()
         {
             // todo - this is not an async process anymore?
             _media.Clear();
 
-            if (CanProceed)
+            try
             {
-                try
+                DirectoryInfo directory = new DirectoryInfo(SelectedPath);
+
+                // No filtering to be applied here; the filtering will happen once we have a populated collection of media
+                FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
+
+                int progressValue = 0;
+                int currentFileIndex = 0;
+                double iMax = files.Count();
+
+
+                foreach (var file in files)
                 {
-                    DirectoryInfo directory = new DirectoryInfo(SelectedPath);
+                    progressValue++;
+                    Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
+                    CurrentProgress = workerValue;
 
-                    // No filtering to be applied here; the filtering will happen once we have a populated collection of media
-                    FileInfo[] files = directory.GetFiles("*.*", System.IO.SearchOption.AllDirectories);
+                    var medium = new Medium(file, _destination, _dateAfter, _regexPatterns);
 
-                    int progressValue = 0;
-                    int currentFileIndex = 0;
-                    double iMax = files.Count();
-
-
-                    foreach (var file in files)
+                    // The CanProcess method can "filter out" any media that are not 
+                    if (medium.CanProcess)
                     {
-                        progressValue++;
-                        Int32 workerValue = Convert.ToInt32((double)(progressValue / iMax) * 100);
-                        CurrentProgress = workerValue;
-
-                        var medium = new Medium(file, _destination, _dateAfter, _regexPatterns);
-
-                        // The CanProcess method can "filter out" any media that are not 
-                        if (medium.CanProcess)
+                        var duplicateMedium = _media.FirstOrDefault(x => (x.Name == medium.Name) && (x.Length <= medium.Length));
+                        if (duplicateMedium != null)
                         {
-                            var duplicateMedium = _media.FirstOrDefault(x => (x.Name == medium.Name) && (x.Length <= medium.Length));
-                            if (duplicateMedium != null)
-                            {
-                                _media.Remove(duplicateMedium);
-                                currentFileIndex--;
-                            }
-
-                            _media.Add(medium);
-                            currentFileIndex++;
-                            UpdateSummary(currentFileIndex);
+                            _media.Remove(duplicateMedium);
+                            currentFileIndex--;
                         }
-                    }
 
-                    // this needs run outside the loop just in case there was none found ...
-                    UpdateSummary(currentFileIndex);
+                        _media.Add(medium);
+                        currentFileIndex++;
+                        UpdateSummary(currentFileIndex);
+                    }
                 }
-                catch (Exception e)
-                {
-                    // ApplicationException() - what do we want to do here?
-                    // do not swallow the original exception
-                    //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    
-                    // do we need to update this here too?
-                    // UpdateSummary(currentFileIndex);
-                    throw e;
-                }
+
+                // this needs run outside the loop just in case there was none found ...
+                UpdateSummary(currentFileIndex);
             }
-            else
+            catch (Exception e)
             {
-                // TODO Prompt user to browse for valid paths                
+                // ApplicationException() - what do we want to do here?
+                // do not swallow the original exception
+                //    System.Windows.MessageBox.Show("An error occured.", "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    
+                // do we need to update this here too?
+                // UpdateSummary(currentFileIndex);
+                throw e;
             }
         }
 

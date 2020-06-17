@@ -33,12 +33,16 @@ namespace MediaOrganiser
         // Calculated
         private DateTime _dateTaken;
         private bool _isProcessed;
+        private bool _regexMatching;
 
         /***********************
          ** Constructor
          ***********************/
         public Medium(FileInfo file, string destination, DateTime dateAfter, NameValueCollection regexPatterns)
         {
+            // typically false by default; should become true if regex matches or if there is no regex matching to be applied (filename doesn't have the date)
+            _regexMatching = false;
+
             // file properties
             _file = file;
             _fullPath = file.FullName;
@@ -68,7 +72,10 @@ namespace MediaOrganiser
             // Then extract the year; this normally is the first numerical value that 
             // appears in the filename. We have to ignore any other characters before that.
             int yearIndexFrom = basePart.IndexOfAny("0123456789".ToCharArray());
-            if (yearIndexFrom >= 0)
+            var leftOverLength = basePart.Length - yearIndexFrom;
+
+            // does the filename have any numbers in it and are they enough to potentially form a date?
+            if (leftOverLength >= 8 && yearIndexFrom >= 0)
             {
                 string year = basePart.Substring(yearIndexFrom, 4);
                 string month = basePart.Substring(yearIndexFrom + 4, 2);
@@ -77,27 +84,37 @@ namespace MediaOrganiser
                 string datePattern = "ddMMyyyy";
                 DateTime.TryParseExact(day + month + year, datePattern, null, DateTimeStyles.None, out returnDateTime);
             }
+            else
+            {
+                // it doesn't look like we have the date in the filename - try the date created instead
+                returnDateTime = _file.CreationTime;
+                _regexMatching = true;
+            }
 
             return returnDateTime;
         }
 
         private Boolean RegexPatternsMatch()
         {
-            // set the default return value to false
-            bool returnValue = false;
-            Regex reg;
-
-            // for every regular expression string supplied in the app.config
-            foreach (var regExpression in _regexPatterns)
+            bool returnValue = _regexMatching;
+            
+            if (!returnValue)
             {
-                // create a new regex and check if the file's name matches it
-                reg = new Regex(_regexPatterns[regExpression.ToString()]);
-                if (reg.IsMatch(_name))
+                // set the default return value to false
+                Regex reg;
+
+                // for every regular expression string supplied in the app.config
+                foreach (var regExpression in _regexPatterns)
                 {
-                    // if this matches set the return value to true and return. It
-                    // means that we can extract the year and month out of the name.
-                    returnValue = true;
-                    break;
+                    // create a new regex and check if the file's name matches it
+                    reg = new Regex(_regexPatterns[regExpression.ToString()]);
+                    if (reg.IsMatch(_name))
+                    {
+                        // if this matches set the return value to true and return. It
+                        // means that we can extract the year and month out of the name.
+                        returnValue = true;
+                        break;
+                    }
                 }
             }
 
@@ -149,7 +166,7 @@ namespace MediaOrganiser
 
         public DateTime DateTaken { get { return _dateTaken; } }
 
-        public long Length { get { return _length; } }
+        public double Length { get { return _length/1024/1024; } }
 
         public bool IsProcessed {  get { return _isProcessed; } }
 

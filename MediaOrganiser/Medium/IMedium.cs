@@ -17,7 +17,7 @@ namespace MediaOrganiser
 
         DateTime DateTaken { get; }
 
-        long Length { get ; }
+        double Length { get ; }
 
         bool IsProcessed { get; }
     }

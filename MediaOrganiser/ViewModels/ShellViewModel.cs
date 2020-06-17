@@ -151,9 +151,12 @@ namespace MediaOrganiser.ViewModels
             {
                 FolderBrowserDialog folderDialog = new FolderBrowserDialog();
                 folderDialog.SelectedPath = SelectedPath;
-                folderDialog.ShowDialog();
-                SelectedPath = folderDialog.SelectedPath;
-                Reset();
+                DialogResult result = folderDialog.ShowDialog();
+                if (result == DialogResult.OK)
+                {
+                    SelectedPath = folderDialog.SelectedPath;
+                    Reset();
+                }
             }
             catch (Exception e)
             {
@@ -167,9 +170,13 @@ namespace MediaOrganiser.ViewModels
             {
                 FolderBrowserDialog folderDialog = new FolderBrowserDialog();
                 folderDialog.SelectedPath = Destination;
-                folderDialog.ShowDialog();
-                Destination = folderDialog.SelectedPath;
-                Reset();
+                folderDialog.ShowNewFolderButton = true;
+                DialogResult result = folderDialog.ShowDialog();
+                if (result == DialogResult.OK)
+                {
+                    Destination = folderDialog.SelectedPath;
+                    Reset();
+                }
             }
             catch (Exception e)
             {
@@ -223,8 +230,9 @@ namespace MediaOrganiser.ViewModels
                 destination = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
             }
 
+            // Assume that the user hasn't made a mistake and that they want that destination folder created
             if (!Directory.Exists(destination))
-                return string.Empty;
+                Directory.CreateDirectory(destination);
 
             return destination;
         }
